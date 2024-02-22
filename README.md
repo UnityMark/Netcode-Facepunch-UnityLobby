@@ -26,8 +26,54 @@ To install "Facepunch Transport for Netcode for GameObject", download the reposi
 3. Select the file path: multiplayer-community-contributions-main\Transports\com.community.netcode.transport.facepunch\package.json.
 
 ## Discription for classes
+### GameNetworkManager.cs
+**GameNetworkManager.cs** -> is manager for Netcode Facepunch. Functions:
+- Creating a lobby
+- Connection to the lobby upon steam request
+- Connect to the lobby by ID
+- Disconnect from the lobby
 
-<u>GameNetworkManager.cs</u> -> is manager for Netcode Facepunch. Functions:
+### NetworkTransmission.cs
+**NetworkTransmission.cs** -> This is the transfer of data between the server and clients. Synchronizes the client and server.
+It works on the principle from Server to Clients. When the Client connects, it calls the Server method when connecting, thereby data will be taken from the Server and transmitted to clients.
+The picture shows how it works and how methods are called:
+
+![alt text](Transmission.png)
+
+**Methods that call ServerRPC in GameNetworkManager.cs.**
+
+***Host Calling:***
+```C#
+private void OnLobbyCreated(Result result, Lobby lobby)
+{
+    NetworkTransmission.instance.AddMeToDictionaryPlayerServerRPC(SteamClient.SteamId, SteamClient.Name, NetworkManager.Singleton.LocalClientId);
+}
+```
+***Client Calling:***
+```C#
+private void OnClientConnectedCallback(ulong clientId)
+{
+    NetworkTransmission.instance.AddMeToDictionaryPlayerServerRPC(SteamClient.SteamId, SteamClient.Name, clientId);
+}
+```
+
+**ServerRPC method in the NetworkTransmission.cs**
+
+Attribute [ServerRpc(RequireOwnership = false)] - allows clients to call a server-side method. 
+
+This method is called when players connect from the server side. First the player is added from the server side, then the server forces the client to update the players based on its data. All clients receive data from the server.
+
+***Method for add client to dictionary:***
+```C#
+[ServerRpc(RequireOwnership = false)]
+public void AddMeToDictionaryPlayerServerRPC(ulong steamId, string steamName, ulong clientId)
+{
+    MyInfo.instance.AddPlayerToDictionary(steamId, steamName, clientId);
+    MyInfo.instance.UpdateClientsDictionary();
+}
+```
+
+Functions:
 - Creating a lobby
 - Connection to the lobby upon steam request
 - Connect to the lobby by ID

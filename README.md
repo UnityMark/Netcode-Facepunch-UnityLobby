@@ -25,20 +25,22 @@ To install "Facepunch Transport for Netcode for GameObject", download the reposi
 2. Open Unity -> Window -> Package Manager -> Plus (Figure) -> Add package from disk.
 3. Select the file path: multiplayer-community-contributions-main\Transports\com.community.netcode.transport.facepunch\package.json.
 
-## Discription for classes
-### GameNetworkManager.cs
-**GameNetworkManager.cs** -> is manager for Netcode Facepunch. Functions:
-- Creating a lobby
-- Connection to the lobby upon steam request
-- Connect to the lobby by ID
-- Disconnect from the lobby
-
+# Information on how the lobby works
 ### NetworkTransmission.cs
 **NetworkTransmission.cs** -> This is the transfer of data between the server and clients. Synchronizes the client and server.
 It works on the principle from Server to Clients. When the Client connects, it calls the Server method when connecting, thereby data will be taken from the Server and transmitted to clients.
 The picture shows how it works and how methods are called:
 
 ![alt text](Transmission.png)
+
+
+**GameNetworkManager.cs** -> is manager for Netcode Facepunch. 
+
+Functions:
+- Creating a lobby
+- Connection to the lobby upon steam request
+- Connect to the lobby by ID
+- Disconnect from the lobby
 
 **Methods that call ServerRPC in GameNetworkManager.cs.**
 
@@ -57,7 +59,10 @@ private void OnClientConnectedCallback(ulong clientId)
 }
 ```
 
-**ServerRPC method in the NetworkTransmission.cs**
+**NetworkTransmission.cs - ServerRPC method**
+
+Functions:
+- Sync data server and client
 
 Attribute [ServerRpc(RequireOwnership = false)] - allows clients to call a server-side method. 
 
@@ -72,9 +77,53 @@ public void AddMeToDictionaryPlayerServerRPC(ulong steamId, string steamName, ul
     MyInfo.instance.UpdateClientsDictionary();
 }
 ```
+**MyInfo.cs - AddPlayerToDictionary && UpdateClientsDictionary**
 
-Functions:
-- Creating a lobby
-- Connection to the lobby upon steam request
-- Connect to the lobby by ID
-- Disconnect from the lobby
+Functions: 
+- Save Data for game and lobby.
+
+This adds the player to the dictionary and creates a gameObject with some data about the player that is needed in the lobby and game.
+
+```C#
+public void AddPlayerToDictionary(ulong steamId, string steamName, ulong clientId)
+{
+    if (!PlayerInformation.ContainsKey(clientId))
+    {
+        PlayerInfo pi = Instantiate(MenuManager.instance.GetPlayerCardPrefab(), MenuManager.instance.GetPlayerFieldBox().transform).GetComponent<PlayerInfo>();
+        pi.SteamID = steamId;
+        pi.SteanName = steamName;
+        PlayerInformation.Add(clientId, pi.gameObject);
+    }
+}
+```
+
+This method creates missing players based on Server data for Clients.
+
+```C#
+public void UpdateClientsDictionary()
+{
+    foreach (KeyValuePair<ulong, GameObject> player in MyInfo.instance.PlayerInformation)
+    {
+        ulong steamId = player.Value.GetComponent<PlayerInfo>().SteamID;
+        string steamName = player.Value.GetComponent<PlayerInfo>().SteanName;
+        ulong clientId = player.Key;
+
+        NetworkTransmission.instance.UpdateClientsPlayerInfromationClientRpc(steamId, steamName, clientId);
+    }
+}
+```
+
+**NetworkTransmission.cs - ClientRPC method**
+
+Creates objects with information about players for clients.
+
+```C#
+[ClientRpc]
+public void UpdateClientsPlayerInfromationClientRpc(ulong steamId, string steamName, ulong clientId)
+{
+    MyInfo.instance.AddPlayerToDictionary(steamId, steamName, clientId);
+}
+```
+
+
+

@@ -27,7 +27,7 @@ To install "Facepunch Transport for Netcode for GameObject", download the reposi
 
 ## Discription for classes
 
-GameNetworkManager is manager for Netcode Facepunch. Functions:
+GameNetworkManager.cs -> is manager for Netcode Facepunch. Functions:
 - Creating a lobby
 - Connection to the lobby upon steam request
 - Connect to the lobby by ID

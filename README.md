@@ -11,7 +11,7 @@ This is a lobby template for Netcode Facepunch. Scripts and their descriptions w
 ## Assets Package
 If you will use scripts in the project, install packages:
 How to install the package: Open Unity -> Window -> Package Manager
-| Plugin | Version | Link | 
+| Package | Version | Link | 
 | ------ | ------ | ------ |
 | NetCode For GameObject | 1.2.0 |Unity Registry| 
 | Multiplayer Tools | 1.1.1 |Unity Registry|

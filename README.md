@@ -25,5 +25,10 @@ To install "Facepunch Transport for Netcode for GameObject", download the reposi
 2. Open Unity -> Window -> Package Manager -> Plus (Figure) -> Add package from disk.
 3. Select the file path: multiplayer-community-contributions-main\Transports\com.community.netcode.transport.facepunch\package.json.
 
-# Discription for classes
+## Discription for classes
 
+GameNetworkManager is manager for Netcode Facepunch. Functions:
+- Creating a lobby
+- Connection to the lobby upon steam request
+- Connect to the lobby by ID
+- Disconnect from the lobby

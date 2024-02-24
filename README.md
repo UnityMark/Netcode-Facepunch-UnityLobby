@@ -217,15 +217,15 @@ public void RemovePlayerFromDictionary(ulong steamId)
     {
         if(player.Value.GetComponent<PlayerInfo>().SteamID == steamId)
         {
-            value = player.Value; // Тут меняем значения
-            key = player.Key; // Тут меняем значения
+            value = player.Value; // Change value
+            key = player.Key; // Change value
         }
     }
-    if(key != 100) // Если поменялось удаляем
+    if(key != 100) // if not changed, delete
     {
         PlayerInformation.Remove(key); 
     }
-    if (value != null) // Если поменялось удаляем
+    if (value != null) if not changed, delete
     {
         Destroy(value);
     }

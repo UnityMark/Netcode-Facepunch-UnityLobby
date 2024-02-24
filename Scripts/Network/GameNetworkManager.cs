@@ -210,6 +210,11 @@ public class GameNetworkManager : MonoBehaviour
 
         NetworkManager.Singleton.Shutdown(true);
 
+        if (!SceneSettings.instance.GetInLevel())
+        {
+            SceneSettings.instance.DisconnectToMenu();
+        }
+
         MenuManager.instance.Disconnected();
 
         Debug.Log("Disconnected");

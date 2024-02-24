@@ -77,4 +77,10 @@ public class NetworkTransmission : NetworkBehaviour
         MenuManager.instance.CheckIfPlayersAreReady();
     }
 
+    [ClientRpc]
+    public void AddSceneListClientRPC(string nameScene)
+    {
+        SceneSettings.instance.ClientAddstring(nameScene);
+    }
+
 }

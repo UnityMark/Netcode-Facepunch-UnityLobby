@@ -225,7 +225,7 @@ public void RemovePlayerFromDictionary(ulong steamId)
     {
         PlayerInformation.Remove(key); 
     }
-    if (value != null) if not changed, delete
+    if (value != null) // if not changed, delete
     {
         Destroy(value);
     }

@@ -46,8 +46,34 @@ Functions:
 
 ***Host Calling:***
 ```C#
+// OnLobbyCreated -> The event when you create a lobby.
 private void OnLobbyCreated(Result result, Lobby lobby)
 {
+    // Check lobby if not created return
+    if(result != Result.OK)
+    {
+        Debug.Log("Lobby was not created");
+        return;
+    }
+
+    // Set lobby Settings
+    // SetPublic() -> make lobby public.
+    // SetJoinable(bool value) -> Allow another player to join the lobby
+    // SetData() -> Need for search lobby or set settings IDK :(
+    // SetGameServer() -> Allows the owner to set the game server associated with the lobby. Triggers the Steammatchmaking.OnLobbyGameCreated event.
+    // SetGameServer() -> Need check for search lobby if work delete SetData()
+    lobby.SetPublic();
+    lobby.SetJoinable(true);
+    lobby.SetData(lobby.Owner.Id.ToString(), "Mark");
+    lobby.SetGameServer(lobby.Owner.Id); 
+
+    Debug.Log($"Lobby created {lobby.Owner.Name}");
+
+    // Debug for check lobby.id for connection lobby
+    Debug.Log($"Lobby id {lobby.Id}"); 
+    // labelLobbyId.text = lobby.Id, In the co-op menu, sets the value of the lobbyID variable for connecting other players. 
+    MenuManager.instance.SetLobbyId(lobby.Id.ToString());
+
     NetworkTransmission.instance.AddMeToDictionaryPlayerServerRPC(SteamClient.SteamId, SteamClient.Name, NetworkManager.Singleton.LocalClientId);
 }
 ```
@@ -55,7 +81,16 @@ private void OnLobbyCreated(Result result, Lobby lobby)
 ```C#
 private void OnClientConnectedCallback(ulong clientId)
 {
+    // Addes in Dictionary Player. Calling ServerRPC
     NetworkTransmission.instance.AddMeToDictionaryPlayerServerRPC(SteamClient.SteamId, SteamClient.Name, clientId);
+
+    //Third Check for host maybe not need -.-
+    MyInfo.instance.SetValues(clientId, SteamClient.SteamId, SteamClient.Name, false);
+
+    // Sets the isReady variable in the lobby to false for a new player joined.
+    //NetworkTransmission.instance.IsTheClientReadyServerRPC(false, clientId);
+
+    Debug.Log($"Client connected, clientId={clientId}");
 }
 ```
 
@@ -95,6 +130,18 @@ public void AddPlayerToDictionary(ulong steamId, string steamName, ulong clientI
         PlayerInformation.Add(clientId, pi.gameObject);
     }
 }
+
+public void AddPlayerToDictionaryClient(ulong steamId, string steamName, ulong clientId, bool isReady)
+{
+    if (!PlayerInformation.ContainsKey(clientId))
+    {
+        PlayerInfo pi = Instantiate(MenuManager.instance.GetPlayerCardPrefab(), MenuManager.instance.GetPlayerFieldBox().transform).GetComponent<PlayerInfo>();
+        pi.SteamID = steamId;
+        pi.SteanName = steamName;
+        pi.IsReady = isReady;
+        PlayerInformation.Add(clientId, pi.gameObject);
+    }
+}
 ```
 
 This method creates missing players based on Server data for Clients.
@@ -108,9 +155,11 @@ public void UpdateClientsDictionary()
         string steamName = player.Value.GetComponent<PlayerInfo>().SteanName;
         ulong clientId = player.Key;
 
-        NetworkTransmission.instance.UpdateClientsPlayerInfromationClientRpc(steamId, steamName, clientId);
+        player.Value.GetComponent<PlayerInfo>().IsReady = player.Value.GetComponent<PlayerInfo>().IsReady;
+
+        NetworkTransmission.instance.UpdateClientsPlayerInfromationClientRpc(steamId, steamName, clientId, player.Value.GetComponent<PlayerInfo>().IsReady);
+        NetworkTransmission.instance.CheckStartButtonServerRPC();
     }
-}
 ```
 
 **NetworkTransmission.cs - ClientRPC method**
@@ -122,6 +171,56 @@ Creates objects with information about players for clients.
 public void UpdateClientsPlayerInfromationClientRpc(ulong steamId, string steamName, ulong clientId)
 {
     MyInfo.instance.AddPlayerToDictionary(steamId, steamName, clientId);
+}
+```
+When member leave from lobby, he calling method remove me to dictionary
+```C#
+private void OnLobbyMemberLeave(Lobby lobby, Friend steamId)
+{
+    Debug.Log($"Leave friend {steamId.Name}");
+    NetworkTransmission.instance.RemoveMeToDictionaryPlayerServerRPC(steamId.Id);
+}
+```
+Calling on Server&Client remove me from dictionary 
+
+```C#
+ [ServerRpc(RequireOwnership = false)]
+ public void RemoveMeToDictionaryPlayerServerRPC(ulong steamId)
+ {
+     RemoveMeToDictionaryPlayerClientRPC(steamId);
+ }
+
+ [ClientRpc]
+ public void RemoveMeToDictionaryPlayerClientRPC(ulong steamId)
+ {
+     MyInfo.instance.RemovePlayerFromDictionary(steamId);
+     Debug.Log("removing client");
+ }
+```
+
+Remove player from Dictionary
+
+```C#
+public void RemovePlayerFromDictionary(ulong steamId)
+{
+    GameObject value = null; // Задаём спецально значения для проверки смениться ли у нас значения
+    ulong key = 100; // Задаём спецально значения для проверки смениться ли у нас значения
+    foreach (KeyValuePair<ulong, GameObject> player in PlayerInformation)
+    {
+        if(player.Value.GetComponent<PlayerInfo>().SteamID == steamId)
+        {
+            value = player.Value; // Тут меняем значения
+            key = player.Key; // Тут меняем значения
+        }
+    }
+    if(key != 100) // Если поменялось удаляем
+    {
+        PlayerInformation.Remove(key); 
+    }
+    if (value != null) // Если поменялось удаляем
+    {
+        Destroy(value);
+    }
 }
 ```
 

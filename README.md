@@ -173,7 +173,11 @@ public void UpdateClientsPlayerInfromationClientRpc(ulong steamId, string steamN
     MyInfo.instance.AddPlayerToDictionary(steamId, steamName, clientId);
 }
 ```
+
+**GameNetworkManager.cs**
+
 When member leave from lobby, he calling method remove me to dictionary
+
 ```C#
 private void OnLobbyMemberLeave(Lobby lobby, Friend steamId)
 {
@@ -181,6 +185,8 @@ private void OnLobbyMemberLeave(Lobby lobby, Friend steamId)
     NetworkTransmission.instance.RemoveMeToDictionaryPlayerServerRPC(steamId.Id);
 }
 ```
+**NetworkTransmission.cs - Server&Client method**
+
 Calling on Server&Client remove me from dictionary 
 
 ```C#
@@ -197,6 +203,8 @@ Calling on Server&Client remove me from dictionary
      Debug.Log("removing client");
  }
 ```
+
+**MyInfo.cs - Remove me from dictionary**
 
 Remove player from Dictionary
 

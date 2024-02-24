@@ -211,8 +211,8 @@ Remove player from Dictionary
 ```C#
 public void RemovePlayerFromDictionary(ulong steamId)
 {
-    GameObject value = null; // Задаём спецально значения для проверки смениться ли у нас значения
-    ulong key = 100; // Задаём спецально значения для проверки смениться ли у нас значения
+    GameObject value = null; // We set the values to check if our values change if so, we delete the entry.
+    ulong key = 100; // We set the values to check if our values change if so, we delete the entry.
     foreach (KeyValuePair<ulong, GameObject> player in PlayerInformation)
     {
         if(player.Value.GetComponent<PlayerInfo>().SteamID == steamId)

@@ -96,7 +96,9 @@ public class GameNetworkManager : MonoBehaviour
         // Debug for check lobby.id for connection lobby
         Debug.Log($"Lobby id {lobby.Id}"); 
         // labelLobbyId.text = lobby.Id, In the co-op menu, sets the value of the lobbyID variable for connecting other players. 
-        MenuManager.instance.SetLobbyId(lobby.Id.ToString()); 
+        MenuManager.instance.SetLobbyId(lobby.Id.ToString());
+
+        NetworkTransmission.instance.AddMeToDictionaryPlayerServerRPC(SteamClient.SteamId, SteamClient.Name, NetworkManager.Singleton.LocalClientId);
     }
 
     //OnLobbyEntered -> Event that triggers when you are connected to the lobby.
@@ -126,6 +128,9 @@ public class GameNetworkManager : MonoBehaviour
         else
         {
             CurrentLobby = lobby;
+
+            MenuManager.instance.Connected();
+            MenuManager.instance.SetLobbyId(lobby.Id.ToString());
             Debug.Log("Joined Lobby");
         }
     }
@@ -137,18 +142,19 @@ public class GameNetworkManager : MonoBehaviour
     #endregion
 
     #region Steam Callback -> Player Callback
-    private void OnLobbyMemberJoined(Lobby lobby, Friend friend)
+    private void OnLobbyMemberJoined(Lobby lobby, Friend steamId)
     {
-        Debug.Log($"Join friend {friend.Name}");
+        Debug.Log($"Join friend {steamId.Name}");
     }
-    private void OnLobbyInvite(Friend friend, Lobby lobby)
+    private void OnLobbyInvite(Friend steamId, Lobby lobby)
     {
-        Debug.Log($"Invite friend {friend.Name}");
+        Debug.Log($"Invite friend {steamId.Name}");
     }
 
-    private void OnLobbyMemberLeave(Lobby lobby, Friend friend)
+    private void OnLobbyMemberLeave(Lobby lobby, Friend steamId)
     {
-        Debug.Log($"Leave friend {friend.Name}");
+        Debug.Log($"Leave friend {steamId.Name}");
+        NetworkTransmission.instance.RemoveMeToDictionaryPlayerServerRPC(steamId.Id);
     }
     #endregion
 
@@ -157,15 +163,12 @@ public class GameNetworkManager : MonoBehaviour
     // StartHost -> Start the host and subscribe to the callback (OnServerStarted)
     public async void StartHost()
     {
-        //First
         NetworkManager.Singleton.OnServerStarted += OnServerStarted;
         NetworkManager.Singleton.StartHost();
 
-        //Second
         // Adding data about player
-        MyInfo.instance.SetValues(NetworkManager.Singleton.LocalClientId, SteamClient.SteamId, SteamClient.Name);
+        MyInfo.instance.SetValues(NetworkManager.Singleton.LocalClientId, SteamClient.SteamId, SteamClient.Name, true);
 
-        //First
         // Creating a lobby with a maximum of 4 players
         CurrentLobby = await SteamMatchmaking.CreateLobbyAsync(4);
     }
@@ -173,17 +176,14 @@ public class GameNetworkManager : MonoBehaviour
     // StartClient -> Start the client and subscribe to the callback (OnClientConnectedCallback & OnClientDisconnectCallback)
     public void StartClient(SteamId id)
     {
-        //First
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnectedCallback;
         NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnectCallback;
         // This is for connection, targetID = SteamID.
         transport.targetSteamId = id;
 
-        //Second
         // Adding data about player
-        MyInfo.instance.SetValues(NetworkManager.Singleton.LocalClientId, SteamClient.SteamId, SteamClient.Name);
+        MyInfo.instance.SetValues(NetworkManager.Singleton.LocalClientId, SteamClient.SteamId, SteamClient.Name, false);
 
-        //First
         if (NetworkManager.Singleton.StartClient())
         {
             Debug.Log("Client has joined", this);
@@ -210,10 +210,8 @@ public class GameNetworkManager : MonoBehaviour
 
         NetworkManager.Singleton.Shutdown(true);
 
-        //Second
         MenuManager.instance.Disconnected();
 
-        //First
         Debug.Log("Disconnected");
     }
     #endregion
@@ -221,16 +219,31 @@ public class GameNetworkManager : MonoBehaviour
     #region Network Callback
     private void OnClientConnectedCallback(ulong clientId)
     {
+        // Addes in Dictionary Player. Calling ServerRPC
+        NetworkTransmission.instance.AddMeToDictionaryPlayerServerRPC(SteamClient.SteamId, SteamClient.Name, clientId);
+
+        //Third Check for host maybe not need -.-
+        MyInfo.instance.SetValues(clientId, SteamClient.SteamId, SteamClient.Name, false);
+
+        // Sets the isReady variable in the lobby to false for a new player joined.
+        //NetworkTransmission.instance.IsTheClientReadyServerRPC(false, clientId);
+
         Debug.Log($"Client connected, clientId={clientId}");
     }
 
     private void OnClientDisconnectCallback(ulong clientId)
     {
         Debug.Log($"Client Disconnect, clientId={clientId}");
+        NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnectCallback;
+        if(clientId == 0)
+        {
+            Disconnect();
+        }
     }
 
     private void OnServerStarted()
     {
+        MenuManager.instance.Connected();
         Debug.Log("Host started", this);
     }
     #endregion

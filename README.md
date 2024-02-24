@@ -232,5 +232,6 @@ public void RemovePlayerFromDictionary(ulong steamId)
 }
 ```
 
+*The lobby description is complete.*
 
 
